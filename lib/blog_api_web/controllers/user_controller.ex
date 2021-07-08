@@ -1,13 +1,13 @@
 defmodule BlogApiWeb.UserController do
   use BlogApiWeb, :controller
   alias BlogApi.Accounts
-  alias Accounts.{Guardian, Session}
+  alias Accounts.{Guardian, Session, User}
 
   action_fallback BlogApiWeb.FallbackController
 
   def index(conn, _params) do
     users = Accounts.list_users()
-    render(conn, "index.html", users: users)
+    render(conn, "index.json", users: users)
   end
 
   def create(conn, %{"user" => user_params}) do
@@ -20,9 +20,9 @@ defmodule BlogApiWeb.UserController do
     end
   end
 
-  def show(conn, %{"id" => id}) do
-    user = Accounts.get_user!(id)
-    render(conn, "show.html", user: user)
+  def show(conn, _params) do
+    user = Guardian.current_user(conn)
+    render(conn, "show.json", %{user: user})
   end
 
   def edit(conn, %{"id" => id}) do
