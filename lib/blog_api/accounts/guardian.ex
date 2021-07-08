@@ -25,4 +25,6 @@ defmodule BlogApi.Accounts.Guardian do
     do: Guardian.encode_and_sign(__MODULE__, user)
 
   def verify(token), do: Guardian.decode_and_verify(__MODULE__, token)
+
+  def current_user(conn), do: Guardian.Plug.current_resource(conn)
 end

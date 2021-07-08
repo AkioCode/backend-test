@@ -5,8 +5,16 @@ defmodule BlogApiWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :auth do
+    plug BlogApi.Accounts.Pipeline
+  end
+
+  pipeline :ensure_auth do
+    plug Guardian.Plug.EnsureAuthenticated
+  end
+
   scope "/", BlogApiWeb do
-    pipe_through :api
+    pipe_through [:api, :auth]
 
     post "/user", UserController, :create
     post "/login", UserController, :login
