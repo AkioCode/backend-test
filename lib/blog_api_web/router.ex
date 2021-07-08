@@ -9,6 +9,7 @@ defmodule BlogApiWeb.Router do
     pipe_through :api
 
     post "/user", UserController, :create
+    post "/login", UserController, :login
   end
 
   # Other scopes may use custom stacks.

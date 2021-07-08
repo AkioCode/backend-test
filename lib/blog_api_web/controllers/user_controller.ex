@@ -1,7 +1,7 @@
 defmodule BlogApiWeb.UserController do
   use BlogApiWeb, :controller
-  alias BlogApi.Accounts.Guardian
   alias BlogApi.Accounts
+  alias Accounts.{Guardian, Session}
 
   action_fallback BlogApiWeb.FallbackController
 
@@ -53,4 +53,22 @@ defmodule BlogApiWeb.UserController do
     |> put_flash(:info, "User deleted successfully.")
     |> redirect(to: Routes.user_path(conn, :index))
   end
+
+  def login(conn, %{"email" => "", "password" => _password}),
+    do: {:error, "\"email\" is not allowed to be empty"}
+
+  def login(conn, %{"email" => _email, "password" => ""}),
+    do: {:error, "\"password\" is not allowed to be emmty"}
+
+  def login(conn, %{"email" => _email, "password" => _password} = credentials) do
+    with {:ok, token} <- Session.login(credentials) do
+      conn
+      |> put_status(:ok)
+      |> json(%{token: token})
+    end
+  end
+
+  def login(conn, %{"password" => _password}), do: {:error, "\"email\" is required"}
+
+  def login(conn, %{"email" => _email}), do: {:error, "\"password\" is required"}
 end
