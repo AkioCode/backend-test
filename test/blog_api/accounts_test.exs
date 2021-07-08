@@ -6,8 +6,18 @@ defmodule BlogApi.AccountsTest do
   describe "users" do
     alias BlogApi.Accounts.User
 
-    @valid_attrs %{displayName: "some displayName", email: "some email", image: "some image", password: "some password"}
-    @update_attrs %{displayName: "some updated displayName", email: "some updated email", image: "some updated image", password: "some updated password"}
+    @valid_attrs %{
+      displayName: "some displayName",
+      email: "some email",
+      image: "some image",
+      password: "some password"
+    }
+    @update_attrs %{
+      displayName: "some updated displayName",
+      email: "some updated email",
+      image: "some updated image",
+      password: "some updated password"
+    }
     @invalid_attrs %{displayName: nil, email: nil, image: nil, password: nil}
 
     def user_fixture(attrs \\ %{}) do
