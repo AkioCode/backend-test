@@ -1,6 +1,6 @@
 defmodule BlogApiWeb.UserController do
   use BlogApiWeb, :controller
-
+  alias BlogApi.Accounts.Guardian
   alias BlogApi.Accounts
 
   action_fallback BlogApiWeb.FallbackController
@@ -11,10 +11,12 @@ defmodule BlogApiWeb.UserController do
   end
 
   def create(conn, %{"user" => user_params}) do
-    with {:ok, _user} <- Accounts.create_user(user_params) do
+    with {:ok, user} <- Accounts.create_user(user_params) do
+      {:ok, token, _claims} = Guardian.encode_and_sign(user)
+
       conn
       |> put_status(:ok)
-      |> text("Usuario criado")
+      |> json(%{token: token})
     end
   end
 
