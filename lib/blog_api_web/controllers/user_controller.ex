@@ -19,22 +19,15 @@ defmodule BlogApiWeb.UserController do
       |> json(%{token: token})
     end
   end
+
   def show(conn, %{"id" => "me"}) do
     user = Guardian.current_user(conn)
     render(conn, "show.json", %{user: user})
   end
 
   def show(conn, %{"id" => id}) do
-    Guardian.current_user(conn)
-    with {:ok, _uuid} <- Ecto.UUID.cast(id),
-          %User{} = user <- Accounts.get_user(id) do
+    with %User{} = user <- Accounts.get_user(id) do
       render(conn, "show.json", %{user: user})
-    else
-      :error ->
-        {:error, "Usuário não existe"}
-
-      {:error, message} ->
-        {:error, message}
     end
   end
 
@@ -65,23 +58,6 @@ defmodule BlogApiWeb.UserController do
     conn
     |> put_status(204)
     |> text("")
-  end
-
-  def delete(conn, %{"id" => id}) do
-    Guardian.current_user(conn)
-    with {:ok, _uuid} <- Ecto.UUID.cast(id),
-          %User{} = user <- Accounts.get_user(id),
-          {:ok, _user} = Accounts.delete_user(user) do
-      conn
-      |> put_status(204)
-      |> text("")
-    else
-      :error ->
-        {:error, "Usuário não existe"}
-
-      {:error, message} ->
-        {:error, message}
-    end
   end
 
   def login(_conn, %{"email" => "", "password" => _password}),

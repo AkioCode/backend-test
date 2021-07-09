@@ -13,12 +13,15 @@ defmodule BlogApi.Accounts do
   end
 
   def get_user(id) do
-    Repo.get(User, id)
-    |> case do
+    with {:ok, _uuid} <- Ecto.UUID.cast(id),
+         %User{} = user <- Repo.get(User, id) do
+      user
+    else
       nil ->
-        {:error, "Usuário não existe"}
-      user ->
-        user
+        {:error, "Usuário não existe", 404}
+
+      :error ->
+        {:error, "Usuário não existe", 404}
     end
   end
 
