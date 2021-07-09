@@ -19,20 +19,33 @@ defmodule BlogApiWeb.UserController do
       |> json(%{token: token})
     end
   end
-
-  def show(conn, _params) do
+  def show(conn, %{"id" => "me"}) do
     user = Guardian.current_user(conn)
     render(conn, "show.json", %{user: user})
   end
 
+  def show(conn, %{"id" => id}) do
+    Guardian.current_user(conn)
+    with {:ok, _uuid} <- Ecto.UUID.cast(id),
+          %User{} = user <- Accounts.get_user(id) do
+      render(conn, "show.json", %{user: user})
+    else
+      :error ->
+        {:error, "Usuário não existe"}
+
+      {:error, message} ->
+        {:error, message}
+    end
+  end
+
   def edit(conn, %{"id" => id}) do
-    user = Accounts.get_user!(id)
+    %User{} = user = Accounts.get_user(id)
     changeset = Accounts.change_user(user)
     render(conn, "edit.html", user: user, changeset: changeset)
   end
 
   def update(conn, %{"id" => id, "user" => user_params}) do
-    user = Accounts.get_user!(id)
+    %User{} = user = Accounts.get_user(id)
 
     case Accounts.update_user(user, user_params) do
       {:ok, user} ->
@@ -45,19 +58,36 @@ defmodule BlogApiWeb.UserController do
     end
   end
 
-  def delete(conn, %{"id" => id}) do
-    user = Accounts.get_user!(id)
+  def delete(conn, %{"id" => "me"}) do
+    %User{} = user = Guardian.current_user(conn)
     {:ok, _user} = Accounts.delete_user(user)
 
     conn
-    |> put_flash(:info, "User deleted successfully.")
-    |> redirect(to: Routes.user_path(conn, :index))
+    |> put_status(204)
+    |> text("")
   end
 
-  def login(conn, %{"email" => "", "password" => _password}),
+  def delete(conn, %{"id" => id}) do
+    Guardian.current_user(conn)
+    with {:ok, _uuid} <- Ecto.UUID.cast(id),
+          %User{} = user <- Accounts.get_user(id),
+          {:ok, _user} = Accounts.delete_user(user) do
+      conn
+      |> put_status(204)
+      |> text("")
+    else
+      :error ->
+        {:error, "Usuário não existe"}
+
+      {:error, message} ->
+        {:error, message}
+    end
+  end
+
+  def login(_conn, %{"email" => "", "password" => _password}),
     do: {:error, "\"email\" is not allowed to be empty"}
 
-  def login(conn, %{"email" => _email, "password" => ""}),
+  def login(_conn, %{"email" => _email, "password" => ""}),
     do: {:error, "\"password\" is not allowed to be emmty"}
 
   def login(conn, %{"email" => _email, "password" => _password} = credentials) do
@@ -68,7 +98,7 @@ defmodule BlogApiWeb.UserController do
     end
   end
 
-  def login(conn, %{"password" => _password}), do: {:error, "\"email\" is required"}
+  def login(_conn, %{"password" => _password}), do: {:error, "\"email\" is required"}
 
-  def login(conn, %{"email" => _email}), do: {:error, "\"password\" is required"}
+  def login(_conn, %{"email" => _email}), do: {:error, "\"password\" is required"}
 end

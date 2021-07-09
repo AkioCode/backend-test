@@ -13,7 +13,7 @@ defmodule BlogApi.Accounts.Guardian do
   end
 
   def resource_from_claims(%{"sub" => id}) do
-    resource = Accounts.get_user!(id)
+    resource = Accounts.get_user(id)
     {:ok, resource}
   end
 
