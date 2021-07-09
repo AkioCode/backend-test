@@ -59,7 +59,7 @@ defmodule BlogApiWeb.UserController do
     do: {:error, "\"email\" is not allowed to be empty"}
 
   def login(_conn, %{"email" => _email, "password" => ""}),
-    do: {:error, "\"password\" is not allowed to be emmty"}
+    do: {:error, "\"password\" is not allowed to be empty"}
 
   def login(conn, %{"email" => _email, "password" => _password} = credentials) do
     with {:ok, token} <- Session.login(credentials) do
