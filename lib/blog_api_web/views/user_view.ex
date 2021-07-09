@@ -14,4 +14,3 @@ defmodule BlogApiWeb.UserView do
     }
   end
 end
-  

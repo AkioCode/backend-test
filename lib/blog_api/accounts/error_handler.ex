@@ -9,10 +9,13 @@ defmodule BlogApi.Accounts.ErrorHandler do
       case type do
         :invalid_token ->
           "Token inválido ou expirado"
+
         :no_resource_found ->
           "Token não encontrado"
+
         :unauthorized ->
           "Desautorizado"
+
         _ ->
           "Token não encontrado"
       end

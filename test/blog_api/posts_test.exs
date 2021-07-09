@@ -6,8 +6,18 @@ defmodule BlogApi.PostsTest do
   describe "posts" do
     alias BlogApi.Posts.Post
 
-    @valid_attrs %{content: "some content", published: "2010-04-17T14:00:00Z", title: "some title", updated: "2010-04-17T14:00:00Z"}
-    @update_attrs %{content: "some updated content", published: "2011-05-18T15:01:01Z", title: "some updated title", updated: "2011-05-18T15:01:01Z"}
+    @valid_attrs %{
+      content: "some content",
+      published: "2010-04-17T14:00:00Z",
+      title: "some title",
+      updated: "2010-04-17T14:00:00Z"
+    }
+    @update_attrs %{
+      content: "some updated content",
+      published: "2011-05-18T15:01:01Z",
+      title: "some updated title",
+      updated: "2011-05-18T15:01:01Z"
+    }
     @invalid_attrs %{content: nil, published: nil, title: nil, updated: nil}
 
     def post_fixture(attrs \\ %{}) do
@@ -24,9 +34,9 @@ defmodule BlogApi.PostsTest do
       assert Posts.list_posts() == [post]
     end
 
-    test "get_post!/1 returns the post with given id" do
+    test "get_post/1 returns the post with given id" do
       post = post_fixture()
-      assert Posts.get_post!(post.id) == post
+      assert Posts.get_post(post.id) == post
     end
 
     test "create_post/1 with valid data creates a post" do
@@ -53,13 +63,13 @@ defmodule BlogApi.PostsTest do
     test "update_post/2 with invalid data returns error changeset" do
       post = post_fixture()
       assert {:error, %Ecto.Changeset{}} = Posts.update_post(post, @invalid_attrs)
-      assert post == Posts.get_post!(post.id)
+      assert post == Posts.get_post(post.id)
     end
 
     test "delete_post/1 deletes the post" do
       post = post_fixture()
       assert {:ok, %Post{}} = Posts.delete_post(post)
-      assert_raise Ecto.NoResultsError, fn -> Posts.get_post!(post.id) end
+      assert_raise Ecto.NoResultsError, fn -> Posts.get_post(post.id) end
     end
 
     test "change_post/1 returns a post changeset" do

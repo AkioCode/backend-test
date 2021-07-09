@@ -3,8 +3,18 @@ defmodule BlogApiWeb.PostControllerTest do
 
   alias BlogApi.Posts
 
-  @create_attrs %{content: "some content", published: "2010-04-17T14:00:00Z", title: "some title", updated: "2010-04-17T14:00:00Z"}
-  @update_attrs %{content: "some updated content", published: "2011-05-18T15:01:01Z", title: "some updated title", updated: "2011-05-18T15:01:01Z"}
+  @create_attrs %{
+    content: "some content",
+    published: "2010-04-17T14:00:00Z",
+    title: "some title",
+    updated: "2010-04-17T14:00:00Z"
+  }
+  @update_attrs %{
+    content: "some updated content",
+    published: "2011-05-18T15:01:01Z",
+    title: "some updated title",
+    updated: "2011-05-18T15:01:01Z"
+  }
   @invalid_attrs %{content: nil, published: nil, title: nil, updated: nil}
 
   def fixture(:post) do
@@ -75,6 +85,7 @@ defmodule BlogApiWeb.PostControllerTest do
     test "deletes chosen post", %{conn: conn, post: post} do
       conn = delete(conn, Routes.post_path(conn, :delete, post))
       assert redirected_to(conn) == Routes.post_path(conn, :index)
+
       assert_error_sent 404, fn ->
         get(conn, Routes.post_path(conn, :show, post))
       end
