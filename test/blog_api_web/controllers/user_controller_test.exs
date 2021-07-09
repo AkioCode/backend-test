@@ -5,7 +5,7 @@ defmodule BlogApiWeb.UserControllerTest do
 
   @create_attrs %{
     displayName: "some displayName",
-    email: "some email",
+    email: "some@email",
     image: "some image",
     password: "some password"
   }
@@ -29,36 +29,80 @@ defmodule BlogApiWeb.UserControllerTest do
     end
   end
 
-  describe "new user" do
-    test "renders form", %{conn: conn} do
-      conn = get(conn, Routes.user_path(conn, :new))
-      assert html_response(conn, 200) =~ "New User"
+  describe "create user " do
+    test "when data is valid", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :create), @create_attrs)
+      assert conn.status == 201
+      assert %{"token" => _token} = Jason.decode!(conn.resp_body)
+    end
+
+    test "when password is nil", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :create), %{email: "some@mail"})
+      assert conn.status == 400
+      assert %{"message" => "\"password\" is required"} = Jason.decode!(conn.resp_body)
+    end
+
+    test "when password is empty", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :create), %{email: "some@mail", password: ""})
+      assert conn.status == 400
+      assert %{"message" => "\"password\" is required"} = Jason.decode!(conn.resp_body)
+    end
+
+    test "when password is less than 6", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :create), %{email: "some@mail", password: "1"})
+      assert conn.status == 400
+      assert %{"message" => "\"password\" length must be at least 6 characters long"} = Jason.decode!(conn.resp_body)
+    end
+
+    test "when email is nil", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :create), %{password: "some@mail"})
+      assert conn.status == 400
+      assert %{"message" => "\"email\" is required"} = Jason.decode!(conn.resp_body)
+    end
+
+    test "when email has invalid format", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :create), %{email: "nil", password: "123456"})
+      assert conn.status == 400
+      assert %{"message" => "\"email\" must be a valid email"} = Jason.decode!(conn.resp_body)
+    end
+
+    test "when email is empty", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :create), %{email: "", password: "some@mail"})
+      assert conn.status == 400
+      assert %{"message" => "\"email\" is required"} = Jason.decode!(conn.resp_body)
+    end
+
+    test "when displayName is less than 8", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :create), %{displayName: "a", email: "some@mail", password: "123456"})
+      assert conn.status == 400
+      assert %{"message" => "\"displayName\" length must be at least 8 characters long"} = Jason.decode!(conn.resp_body)
+    end
+
+    test "with used email", %{conn: conn} do
+      post(conn, Routes.user_path(conn, :create), %{email: "some@mail", password: "123456"})
+      conn = post(conn, Routes.user_path(conn, :create), %{email: "some@mail", password: "123456"})
+      assert conn.status == 400
+      assert %{"message" => "Usuário já existe"} = Jason.decode!(conn.resp_body)
     end
   end
 
-  describe "create user" do
-    test "redirects to show when data is valid", %{conn: conn} do
-      conn = post(conn, Routes.user_path(conn, :create), user: @create_attrs)
-
-      assert %{id: id} = redirected_params(conn)
-      assert redirected_to(conn) == Routes.user_path(conn, :show, id)
-
-      conn = get(conn, Routes.user_path(conn, :show, id))
-      assert html_response(conn, 200) =~ "Show User"
+  describe "login " do
+    test "when password is nil", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :login), %{email: "some@mail"})
+      assert conn.status == 400
+      assert %{"message" => "\"password\" is required"} = Jason.decode!(conn.resp_body)
     end
 
-    test "renders errors when data is invalid", %{conn: conn} do
-      conn = post(conn, Routes.user_path(conn, :create), user: @invalid_attrs)
-      assert html_response(conn, 200) =~ "New User"
+    test "when email is nil", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :login), %{password: "some@mail"})
+      assert conn.status == 400
+      assert %{"message" => "\"email\" is required"} = Jason.decode!(conn.resp_body)
     end
-  end
 
-  describe "edit user" do
-    setup [:create_user]
-
-    test "renders form for editing chosen user", %{conn: conn, user: user} do
-      conn = get(conn, Routes.user_path(conn, :edit, user))
-      assert html_response(conn, 200) =~ "Edit User"
+    test "when email is empty", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :login), %{email: "", password: "some@mail"})
+      assert conn.status == 400
+      assert Jason.decode!(conn.resp_body)["message"] =~ "\"email\" is not allowed to be empty"
     end
   end
 
