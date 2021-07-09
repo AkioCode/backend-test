@@ -8,8 +8,6 @@ defmodule BlogApi.Repo.Migrations.CreateUsers do
       add :email, :string, null: false
       add :password, :string, null: false
       add :image, :text
-
-      timestamps()
     end
 
     create index("users", [:email], unique: true)
