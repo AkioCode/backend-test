@@ -6,6 +6,11 @@ defmodule BlogApiWeb.PostController do
 
   action_fallback BlogApiWeb.FallbackController
 
+  def index(conn, %{"q" => search_term}) do
+    posts = Posts.list_posts_with_user(search_term)
+    render(conn, "index_with_user.json", %{posts: posts})
+  end
+
   def index(conn, _params) do
     posts = Posts.list_posts_with_user()
     render(conn, "index_with_user.json", %{posts: posts})
@@ -32,12 +37,6 @@ defmodule BlogApiWeb.PostController do
     end
   end
 
-  def edit(conn, %{"id" => id}) do
-    post = Posts.get_post(id)
-    changeset = Posts.change_post(post)
-    render(conn, "edit.html", post: post, changeset: changeset)
-  end
-
   def update(conn, %{"id" => id, "title" => _title, "content" => _content} = params) do
     user = Guardian.current_user(conn)
     with  %Post{} = post <- Posts.get_post(id),
@@ -61,11 +60,18 @@ defmodule BlogApiWeb.PostController do
   def update(_conn, %{"content" => _content}), do: {:error, "\"content\" is required"}
 
   def delete(conn, %{"id" => id}) do
-    post = Posts.get_post(id)
-    {:ok, _post} = Posts.delete_post(post)
+    user = Guardian.current_user(conn)
+    with  %Post{} = post <- Posts.get_post(id),
+          true <- post.userId == user.id,
+          {:ok, _post} = Posts.delete_post(post) do
+      conn
+      |> Plug.Conn.send_resp(204, [])
+    else
+      false ->
+        {:error, "Usuário não autorizado", 401}
 
-    conn
-    |> put_flash(:info, "Post deleted successfully.")
-    |> redirect(to: Routes.post_path(conn, :index))
+      {:error, message, status} ->
+        {:error, message, status}
+    end
   end
 end
