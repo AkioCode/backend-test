@@ -15,7 +15,7 @@ defmodule BlogApiWeb.UserController do
       {:ok, token, _claims} = Guardian.encode_and_sign(user)
 
       conn
-      |> put_status(:ok)
+      |> put_status(201)
       |> json(%{token: token})
     end
   end
@@ -31,11 +31,6 @@ defmodule BlogApiWeb.UserController do
     end
   end
 
-  def edit(conn, %{"id" => id}) do
-    %User{} = user = Accounts.get_user(id)
-    changeset = Accounts.change_user(user)
-    render(conn, "edit.html", user: user, changeset: changeset)
-  end
 
   def update(conn, %{"id" => id, "user" => user_params}) do
     %User{} = user = Accounts.get_user(id)
