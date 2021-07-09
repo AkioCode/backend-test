@@ -17,6 +17,25 @@ defmodule BlogApiWeb.UserControllerTest do
   }
   @invalid_attrs %{displayName: nil, email: nil, image: nil, password: nil}
 
+  setup_all do
+    Ecto.Adapters.SQL.Sandbox.checkin(BlogApi.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(BlogApi.Repo, :auto)
+
+    %{user: user} = create_user(nil)
+
+    on_exit fn ->
+      # this callback needs to checkout its own connection since it
+      # runs in its own process
+      :ok = Ecto.Adapters.SQL.Sandbox.checkout(BlogApi.Repo)
+      Ecto.Adapters.SQL.Sandbox.mode(BlogApi.Repo, :auto)
+
+      Accounts.delete_user(user)
+      :ok
+    end
+
+    %{user: user}
+  end
+
   def fixture(:user) do
     {:ok, user} = Accounts.create_user(@create_attrs)
     user
@@ -87,10 +106,23 @@ defmodule BlogApiWeb.UserControllerTest do
   end
 
   describe "login " do
+    test "with valid params", %{conn: conn, user: user} do
+      conn = post(conn, Routes.user_path(conn, :login), %{email: user.email, password: user.password})
+      assert conn.status == 200
+      assert %{"token" => _token} = Jason.decode!(conn.resp_body)
+    end
+
     test "when password is nil", %{conn: conn} do
       conn = post(conn, Routes.user_path(conn, :login), %{email: "some@mail"})
       assert conn.status == 400
       assert %{"message" => "\"password\" is required"} = Jason.decode!(conn.resp_body)
+    end
+
+
+    test "when password is empty", %{conn: conn} do
+      conn = post(conn, Routes.user_path(conn, :login), %{email: "some@mail", password: ""})
+      assert conn.status == 400
+      assert Jason.decode!(conn.resp_body)["message"] =~ "\"password\" is not allowed to be empty"
     end
 
     test "when email is nil", %{conn: conn} do
