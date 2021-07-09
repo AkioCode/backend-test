@@ -10,7 +10,7 @@ defmodule BlogApiWeb.UserController do
     render(conn, "index.json", users: users)
   end
 
-  def create(conn, %{"user" => user_params}) do
+  def create(conn, user_params) do
     with {:ok, user} <- Accounts.create_user(user_params) do
       {:ok, token, _claims} = Guardian.encode_and_sign(user)
 
