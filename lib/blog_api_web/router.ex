@@ -24,6 +24,7 @@ defmodule BlogApiWeb.Router do
     pipe_through [:api, :auth, :ensure_auth]
 
     resources "/user", UserController, only: [:index, :show, :update, :delete]
+    resources "/post", PostController, only: [:index, :show, :create, :update, :delete]
   end
 
   # Other scopes may use custom stacks.

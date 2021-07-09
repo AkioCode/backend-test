@@ -9,15 +9,15 @@ defmodule BlogApi.Posts.Post do
   schema "posts" do
     field :title, :string
     field :content, :string
-    belongs_to :users, User, foreign_key: :userId
+    belongs_to :user, User, foreign_key: :userId
 
-    timestamps([inserted_at: :published, updated_at: :updated])
+    timestamps(inserted_at: :published, updated_at: :updated)
   end
 
   @doc false
   def changeset(post, attrs) do
     post
     |> cast(attrs, [:title, :content, :userId, :published, :updated])
-    |> validate_required([:title, :userId])
+    |> validate_required([:title, :content, :userId])
   end
 end

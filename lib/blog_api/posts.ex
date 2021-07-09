@@ -11,34 +11,58 @@ defmodule BlogApi.Posts do
     Repo.all(Post)
   end
 
-  @doc """
-  Gets a single post.
+  def get_post(id) do
+    with {:ok, _uuid} <- Ecto.UUID.cast(id),
+         %Post{} = post <- Repo.get(Post, id) do
+      post
+    else
+      :error ->
+        {:error, "Post não existe", 404}
 
-  Raises `Ecto.NoResultsError` if the Post does not exist.
+      nil ->
+        {:error, "Post não existe", 404}
+    end
+  end
 
-  ## Examples
+  def list_posts_with_user() do
+    from(
+      post in Post,
+      join: user in assoc(post, :user),
+      preload: [user: user]
+    )
+    |> Repo.all()
+  end
 
-      iex> get_post!(123)
-      %Post{}
+  def get_post_with_user(id) do
+    with {:ok, _uuid} <- Ecto.UUID.cast(id),
+         %Post{} = post <- query_post_preloaded_user(id) do
+      post
+    else
+      :error ->
+        {:error, "Post não existe", 404}
 
-      iex> get_post!(456)
-      ** (Ecto.NoResultsError)
+      {:error, message, status} ->
+        {:error, message, status}
+    end
+  end
 
-  """
-  def get_post!(id), do: Repo.get!(Post, id)
+  def query_post_preloaded_user(id) do
+    from(
+      post in Post,
+      join: user in assoc(post, :user),
+      where: post.id == ^id,
+      preload: [user: user]
+    )
+    |> Repo.one()
+    |> case do
+      nil ->
+        {:error, "Post não existe", 404}
 
-  @doc """
-  Creates a post.
+      post ->
+        post
+    end
+  end
 
-  ## Examples
-
-      iex> create_post(%{field: value})
-      {:ok, %Post{}}
-
-      iex> create_post(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
   def create_post(attrs \\ %{}) do
     %Post{}
     |> Post.changeset(attrs)

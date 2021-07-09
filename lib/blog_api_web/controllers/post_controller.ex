@@ -1,58 +1,67 @@
 defmodule BlogApiWeb.PostController do
   use BlogApiWeb, :controller
-
+  alias BlogApi.Accounts.Guardian
   alias BlogApi.Posts
   alias BlogApi.Posts.Post
 
+  action_fallback BlogApiWeb.FallbackController
+
   def index(conn, _params) do
-    posts = Posts.list_posts()
-    render(conn, "index.html", posts: posts)
+    posts = Posts.list_posts_with_user()
+    render(conn, "index_with_user.json", %{posts: posts})
   end
 
-  def new(conn, _params) do
-    changeset = Posts.change_post(%Post{})
-    render(conn, "new.html", changeset: changeset)
-  end
+  def create(conn, %{"title" => _title, "content" => _content} = entries) do
+    user = Guardian.current_user(conn)
+    params = Map.put_new(entries, "userId", user.id)
 
-  def create(conn, %{"post" => post_params}) do
-    case Posts.create_post(post_params) do
-      {:ok, post} ->
-        conn
-        |> put_flash(:info, "Post created successfully.")
-        |> redirect(to: Routes.post_path(conn, :show, post))
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, "new.html", changeset: changeset)
+    with {:ok, post} <- Posts.create_post(params) do
+      conn
+      |> put_status(201)
+      |> json(%{title: post.title, content: post.content, userId: post.userId})
     end
   end
 
+  def create(_conn, %{"title" => _title}), do: {:error, "\"title\" is required"}
+
+  def create(_conn, %{"content" => _content}), do: {:error, "\"content\" is required"}
+
   def show(conn, %{"id" => id}) do
-    post = Posts.get_post!(id)
-    render(conn, "show.html", post: post)
+    with %Post{} = post <- Posts.get_post_with_user(id) do
+      render(conn, "show_with_user.json", post: post)
+    end
   end
 
   def edit(conn, %{"id" => id}) do
-    post = Posts.get_post!(id)
+    post = Posts.get_post(id)
     changeset = Posts.change_post(post)
     render(conn, "edit.html", post: post, changeset: changeset)
   end
 
-  def update(conn, %{"id" => id, "post" => post_params}) do
-    post = Posts.get_post!(id)
+  def update(conn, %{"id" => id, "title" => _title, "content" => _content} = params) do
+    user = Guardian.current_user(conn)
+    with  %Post{} = post <- Posts.get_post(id),
+          true <- post.userId == user.id,
+          {:ok, updated_post} <- Posts.update_post(post, params) do
 
-    case Posts.update_post(post, post_params) do
-      {:ok, post} ->
         conn
-        |> put_flash(:info, "Post updated successfully.")
-        |> redirect(to: Routes.post_path(conn, :show, post))
+        |> put_status(:ok)
+        |> json(%{title: updated_post.title, content: updated_post.content, userId: updated_post.userId})
+    else
+      false ->
+        {:error, "Usuário não autorizado", 401}
 
-      {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, "edit.html", post: post, changeset: changeset)
+      {:error, message, status} ->
+        {:error, message, status}
     end
   end
 
+  def update(_conn, %{"title" => _title}), do: {:error, "\"title\" is required"}
+
+  def update(_conn, %{"content" => _content}), do: {:error, "\"content\" is required"}
+
   def delete(conn, %{"id" => id}) do
-    post = Posts.get_post!(id)
+    post = Posts.get_post(id)
     {:ok, _post} = Posts.delete_post(post)
 
     conn
