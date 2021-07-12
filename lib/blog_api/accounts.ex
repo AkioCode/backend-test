@@ -42,8 +42,4 @@ defmodule BlogApi.Accounts do
   def delete_user(%User{} = user) do
     Repo.delete(user)
   end
-
-  def change_user(%User{} = user, attrs \\ %{}) do
-    User.changeset(user, attrs)
-  end
 end
