@@ -26,13 +26,13 @@ defmodule BlogApi.Posts do
 
   def list_posts_with_user(term) do
     str = "%#{term}%"
+
     from(
       post in Post,
-      join:
-        user in assoc(post, :user),
+      join: user in assoc(post, :user),
       where:
         like(post.title, ^str) or
-        like(post.content, ^str),
+          like(post.content, ^str),
       preload: [user: user]
     )
     |> Repo.all()

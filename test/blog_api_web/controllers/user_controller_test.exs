@@ -16,7 +16,7 @@ defmodule BlogApiWeb.UserControllerTest do
 
     %{user: user} = create_user(nil)
 
-    on_exit fn ->
+    on_exit(fn ->
       # this callback needs to checkout its own connection since it
       # runs in its own process
       :ok = Ecto.Adapters.SQL.Sandbox.checkout(BlogApi.Repo)
@@ -24,7 +24,7 @@ defmodule BlogApiWeb.UserControllerTest do
 
       Accounts.delete_user(user)
       :ok
-    end
+    end)
 
     %{user: user}
   end
@@ -52,6 +52,7 @@ defmodule BlogApiWeb.UserControllerTest do
         conn
         |> put_req_header("authorization", "Bearer 123456")
         |> get(Routes.user_path(conn, :index))
+
       assert response.status == 401
       assert "Token inválido ou expirado" == Jason.decode!(response.resp_body)["message"]
     end
@@ -79,6 +80,7 @@ defmodule BlogApiWeb.UserControllerTest do
         conn
         |> put_req_header("authorization", "Bearer 123456")
         |> get(Routes.user_path(conn, :show, "me"))
+
       assert response.status == 401
       assert "Token inválido ou expirado" == Jason.decode!(response.resp_body)["message"]
     end
@@ -99,6 +101,7 @@ defmodule BlogApiWeb.UserControllerTest do
         image: "some image",
         password: "some password"
       }
+
       response = post(conn, Routes.user_path(conn, :create), sample)
       assert response.status == 201
       assert %{"token" => _token} = Jason.decode!(response.resp_body)
@@ -119,7 +122,9 @@ defmodule BlogApiWeb.UserControllerTest do
     test "when password is less than 6", %{conn: conn} do
       conn = post(conn, Routes.user_path(conn, :create), %{email: "some@mail", password: "1"})
       assert conn.status == 400
-      assert %{"message" => "\"password\" length must be at least 6 characters long"} = Jason.decode!(conn.resp_body)
+
+      assert %{"message" => "\"password\" length must be at least 6 characters long"} =
+               Jason.decode!(conn.resp_body)
     end
 
     test "when email is nil", %{conn: conn} do
@@ -141,14 +146,25 @@ defmodule BlogApiWeb.UserControllerTest do
     end
 
     test "when displayName is less than 8", %{conn: conn} do
-      conn = post(conn, Routes.user_path(conn, :create), %{displayName: "a", email: "some@mail", password: "123456"})
+      conn =
+        post(conn, Routes.user_path(conn, :create), %{
+          displayName: "a",
+          email: "some@mail",
+          password: "123456"
+        })
+
       assert conn.status == 400
-      assert %{"message" => "\"displayName\" length must be at least 8 characters long"} = Jason.decode!(conn.resp_body)
+
+      assert %{"message" => "\"displayName\" length must be at least 8 characters long"} =
+               Jason.decode!(conn.resp_body)
     end
 
     test "with used email", %{conn: conn} do
       post(conn, Routes.user_path(conn, :create), %{email: "some@mail", password: "123456"})
-      conn = post(conn, Routes.user_path(conn, :create), %{email: "some@mail", password: "123456"})
+
+      conn =
+        post(conn, Routes.user_path(conn, :create), %{email: "some@mail", password: "123456"})
+
       assert conn.status == 400
       assert %{"message" => "Usuário já existe"} = Jason.decode!(conn.resp_body)
     end
@@ -156,7 +172,9 @@ defmodule BlogApiWeb.UserControllerTest do
 
   describe "login " do
     test "with valid params", %{conn: conn, user: user} do
-      conn = post(conn, Routes.user_path(conn, :login), %{email: user.email, password: user.password})
+      conn =
+        post(conn, Routes.user_path(conn, :login), %{email: user.email, password: user.password})
+
       assert conn.status == 200
       assert %{"token" => _token} = Jason.decode!(conn.resp_body)
     end
@@ -166,7 +184,6 @@ defmodule BlogApiWeb.UserControllerTest do
       assert conn.status == 400
       assert %{"message" => "\"password\" is required"} = Jason.decode!(conn.resp_body)
     end
-
 
     test "when password is empty", %{conn: conn} do
       conn = post(conn, Routes.user_path(conn, :login), %{email: "some@mail", password: ""})
@@ -205,6 +222,7 @@ defmodule BlogApiWeb.UserControllerTest do
       conn =
         conn
         |> put_req_header("authorization", "Bearer 123456")
+
       response = delete(conn, "/user/me")
       assert response.status == 401
       assert "Token inválido ou expirado" == Jason.decode!(response.resp_body)["message"]
