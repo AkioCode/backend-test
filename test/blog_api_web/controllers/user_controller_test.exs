@@ -1,6 +1,6 @@
 defmodule BlogApiWeb.UserControllerTest do
   use BlogApiWeb.ConnCase
-
+  alias BlogApi.Accounts.Guardian
   alias BlogApi.Accounts
 
   @create_attrs %{
@@ -9,13 +9,6 @@ defmodule BlogApiWeb.UserControllerTest do
     image: "some image",
     password: "some password"
   }
-  @update_attrs %{
-    displayName: "some updated displayName",
-    email: "some updated email",
-    image: "some updated image",
-    password: "some updated password"
-  }
-  @invalid_attrs %{displayName: nil, email: nil, image: nil, password: nil}
 
   setup_all do
     Ecto.Adapters.SQL.Sandbox.checkin(BlogApi.Repo)
@@ -42,17 +35,73 @@ defmodule BlogApiWeb.UserControllerTest do
   end
 
   describe "index" do
-    test "lists all users", %{conn: conn} do
-      conn = get(conn, Routes.user_path(conn, :index))
-      assert html_response(conn, 200) =~ "Listing Users"
+    test "lists all users", %{conn: conn, user: user} do
+      conn = Guardian.Plug.sign_in(conn, user)
+      response = get(conn, Routes.user_path(conn, :index))
+      assert response.status == 200
+    end
+
+    test "index user token not found", %{conn: conn} do
+      response = get(conn, Routes.user_path(conn, :index))
+      assert response.status == 401
+      assert "Token não encontrado" == Jason.decode!(response.resp_body)["message"]
+    end
+
+    test "index user invalid token", %{conn: conn} do
+      response =
+        conn
+        |> put_req_header("authorization", "Bearer 123456")
+        |> get(Routes.user_path(conn, :index))
+      assert response.status == 401
+      assert "Token inválido ou expirado" == Jason.decode!(response.resp_body)["message"]
+    end
+
+    test "show a valid user", %{conn: conn, user: user} do
+      conn = Guardian.Plug.sign_in(conn, user)
+      response = get(conn, Routes.user_path(conn, :show, user.id))
+      assert response.status == 200
+    end
+
+    test "show (him/her)self", %{conn: conn, user: user} do
+      conn = Guardian.Plug.sign_in(conn, user)
+      response = get(conn, Routes.user_path(conn, :show, "me"))
+      assert response.status == 200
+    end
+
+    test "show user token not found", %{conn: conn} do
+      response = get(conn, Routes.user_path(conn, :show, "me"))
+      assert response.status == 401
+      assert "Token não encontrado" == Jason.decode!(response.resp_body)["message"]
+    end
+
+    test "show user invalid token", %{conn: conn} do
+      response =
+        conn
+        |> put_req_header("authorization", "Bearer 123456")
+        |> get(Routes.user_path(conn, :show, "me"))
+      assert response.status == 401
+      assert "Token inválido ou expirado" == Jason.decode!(response.resp_body)["message"]
+    end
+
+    test "show an invalid user", %{conn: conn, user: user} do
+      conn = Guardian.Plug.sign_in(conn, user)
+      response = get(conn, Routes.user_path(conn, :show, "-1"))
+      assert response.status == 404
+      assert "Usuário não existe" == Jason.decode!(response.resp_body)["message"]
     end
   end
 
   describe "create user " do
     test "when data is valid", %{conn: conn} do
-      conn = post(conn, Routes.user_path(conn, :create), @create_attrs)
-      assert conn.status == 201
-      assert %{"token" => _token} = Jason.decode!(conn.resp_body)
+      sample = %{
+        displayName: "Display Name",
+        email: "display@email",
+        image: "some image",
+        password: "some password"
+      }
+      response = post(conn, Routes.user_path(conn, :create), sample)
+      assert response.status == 201
+      assert %{"token" => _token} = Jason.decode!(response.resp_body)
     end
 
     test "when password is nil", %{conn: conn} do
@@ -138,33 +187,27 @@ defmodule BlogApiWeb.UserControllerTest do
     end
   end
 
-  describe "update user" do
-    setup [:create_user]
-
-    test "redirects when data is valid", %{conn: conn, user: user} do
-      conn = put(conn, Routes.user_path(conn, :update, user), user: @update_attrs)
-      assert redirected_to(conn) == Routes.user_path(conn, :show, user)
-
-      conn = get(conn, Routes.user_path(conn, :show, user))
-      assert html_response(conn, 200) =~ "some updated displayName"
-    end
-
-    test "renders errors when data is invalid", %{conn: conn, user: user} do
-      conn = put(conn, Routes.user_path(conn, :update, user), user: @invalid_attrs)
-      assert html_response(conn, 200) =~ "Edit User"
-    end
-  end
-
   describe "delete user" do
-    setup [:create_user]
+    test " (him/her)self", %{conn: conn, user: user} do
+      conn = Guardian.Plug.sign_in(conn, user)
+      response = delete(conn, "/user/me")
+      assert response.status == 204
+      assert nil == BlogApi.Repo.get(BlogApi.Accounts.User, user.id)
+    end
 
-    test "deletes chosen user", %{conn: conn, user: user} do
-      conn = delete(conn, Routes.user_path(conn, :delete, user))
-      assert redirected_to(conn) == Routes.user_path(conn, :index)
+    test "token not found", %{conn: conn} do
+      response = delete(conn, "/user/me")
+      assert response.status == 401
+      assert "Token não encontrado" == Jason.decode!(response.resp_body)["message"]
+    end
 
-      assert_error_sent 404, fn ->
-        get(conn, Routes.user_path(conn, :show, user))
-      end
+    test "invalid token", %{conn: conn} do
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer 123456")
+      response = delete(conn, "/user/me")
+      assert response.status == 401
+      assert "Token inválido ou expirado" == Jason.decode!(response.resp_body)["message"]
     end
   end
 
