@@ -27,9 +27,9 @@ defmodule BlogApiWeb.PostController do
     end
   end
 
-  def create(_conn, %{"title" => _title}), do: {:error, "\"title\" is required"}
+  def create(_conn, %{"title" => _title}), do: {:error, "\"content\" is required"}
 
-  def create(_conn, %{"content" => _content}), do: {:error, "\"content\" is required"}
+  def create(_conn, %{"content" => _content}), do: {:error, "\"title\" is required"}
 
   def show(conn, %{"id" => id}) do
     with %Post{} = post <- Posts.get_post_with_user(id) do
@@ -39,13 +39,17 @@ defmodule BlogApiWeb.PostController do
 
   def update(conn, %{"id" => id, "title" => _title, "content" => _content} = params) do
     user = Guardian.current_user(conn)
-    with  %Post{} = post <- Posts.get_post(id),
-          true <- post.userId == user.id,
-          {:ok, updated_post} <- Posts.update_post(post, params) do
 
-        conn
-        |> put_status(:ok)
-        |> json(%{title: updated_post.title, content: updated_post.content, userId: updated_post.userId})
+    with %Post{} = post <- Posts.get_post(id),
+         true <- post.userId == user.id,
+         {:ok, updated_post} <- Posts.update_post(post, params) do
+      conn
+      |> put_status(:ok)
+      |> json(%{
+        title: updated_post.title,
+        content: updated_post.content,
+        userId: updated_post.userId
+      })
     else
       false ->
         {:error, "Usuário não autorizado", 401}
@@ -55,15 +59,16 @@ defmodule BlogApiWeb.PostController do
     end
   end
 
-  def update(_conn, %{"title" => _title}), do: {:error, "\"title\" is required"}
+  def update(_conn, %{"title" => _title}), do: {:error, "\"content\" is required"}
 
-  def update(_conn, %{"content" => _content}), do: {:error, "\"content\" is required"}
+  def update(_conn, %{"content" => _content}), do: {:error, "\"title\" is required"}
 
   def delete(conn, %{"id" => id}) do
     user = Guardian.current_user(conn)
-    with  %Post{} = post <- Posts.get_post(id),
-          true <- post.userId == user.id,
-          {:ok, _post} = Posts.delete_post(post) do
+
+    with %Post{} = post <- Posts.get_post(id),
+         true <- post.userId == user.id,
+         {:ok, _post} = Posts.delete_post(post) do
       conn
       |> Plug.Conn.send_resp(204, [])
     else
