@@ -179,6 +179,14 @@ defmodule BlogApiWeb.UserControllerTest do
       assert %{"token" => _token} = Jason.decode!(conn.resp_body)
     end
 
+    test "with invalid credentials", %{conn: conn, user: user} do
+      conn =
+        post(conn, Routes.user_path(conn, :login), %{email: user.email, password: "user.password"})
+
+      assert conn.status == 400
+      assert %{"message" => "Campos inválidos"} = Jason.decode!(conn.resp_body)
+    end
+
     test "when password is nil", %{conn: conn} do
       conn = post(conn, Routes.user_path(conn, :login), %{email: "some@mail"})
       assert conn.status == 400
